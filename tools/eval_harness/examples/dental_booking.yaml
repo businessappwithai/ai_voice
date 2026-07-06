@@ -1,0 +1,14 @@
+# Example golden transcript — a booking flow expecting exactly one
+# calendar tool call with specific arguments.
+id: dental_booking_basic
+description: patient asks to book tomorrow at 9am; expects a single calendar booking tool call
+turns:
+  - role: user
+    content: "Can you book me an appointment tomorrow at 9am?"
+expected:
+  contains: ["booked", "confirmed"]
+  tool_calls:
+    - name: "mcp.calendar.book_slot"
+      arguments:
+        slot_id: "slot-9"
+        booked_by: "patient"

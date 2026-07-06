@@ -1,0 +1,13 @@
+# Example golden transcript — a simple FAQ deflection with grounding,
+# no tool calls expected. Used as living documentation for the
+# transcript format; also exercised by tests/tools/test_eval_harness.py.
+id: dental_hours_basic
+description: patient asks for office hours; expects a grounded, citation-backed answer with no tool calls
+turns:
+  - role: user
+    content: "What are your office hours?"
+expected:
+  contains: ["9", "5"]
+  not_contains: ["I don't know"]
+  tool_calls: []
+  grounded: true
