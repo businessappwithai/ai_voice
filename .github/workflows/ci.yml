@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-typecheck-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package + dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check saap tools tests migrations
+
+      - name: mypy --strict (saap.core)
+        run: mypy saap/core
+
+      - name: Unit tests
+        run: pytest tests/ -v --cov=saap --cov-report=term-missing
+
+      # P1 enforcement: fails the build on any dependency whose license
+      # isn't on the allow list. Lands in CI from Phase 0 per the plan —
+      # "nothing built later has to be retrofitted."
+      - name: LicenseGate
+        run: python -m tools.license_gate.gate
+
+  migration-check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: saap
+          POSTGRES_PASSWORD: saap_dev_only
+          POSTGRES_DB: saap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U saap"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package + dev dependencies
+        run: pip install -e ".[dev]"
+
+      # alembic.ini's sqlalchemy.url already points at
+      # saap:saap_dev_only@localhost:5432/saap, matching this job's
+      # postgres service credentials.
+      - name: Run migrations against a real Postgres
+        run: |
+          alembic upgrade head
+          alembic downgrade base
