@@ -117,13 +117,18 @@ class AuditRecorder:
         return envelope.with_message(envelope.message, audit_row_id=str(row.row_id))
 
     async def after(self, tenant: TenantContext, envelope: Envelope) -> Envelope:
-        kind = "refusal" if envelope.metadata.get("compliance_violation") else "response"
+        # `envelope.metadata["violation"]` is the canonical flag set by
+        # ComplianceChain.wrap/run_before on a ComplianceViolation — NOT
+        # `envelope.message.metadata["compliance_violation"]`, which is
+        # a separate dict scoped to the inner Message, not the envelope.
+        violation = envelope.metadata.get("violation")
+        kind = "refusal" if violation else "response"
         await self._store.append(
             tenant,
             kind=kind,
             payload={
                 "content_hash": _content_hash(envelope.message.content),
-                "violation": envelope.metadata.get("compliance_violation"),
+                "violation": violation,
             },
         )
         return envelope

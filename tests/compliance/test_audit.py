@@ -51,3 +51,41 @@ async def test_different_tenants_have_independent_chains() -> None:
     row2 = await store.append(t2, "message", {"a": 1})
     assert row1.prev_hash == GENESIS_HASH
     assert row2.prev_hash == GENESIS_HASH  # independent chain, not chained to t1
+
+
+async def test_audit_recorder_after_logs_refusal_kind_on_violation(tenant: TenantContext) -> None:
+    """Regression test: AuditRecorder.after() must key off
+    `envelope.metadata["violation"]` (set by ComplianceChain on a
+    ComplianceViolation) — not `envelope.message.metadata["compliance_violation"]`,
+    a different dict scoped to the inner Message. Getting this wrong
+    means every refusal silently gets logged as kind="response"."""
+    from saap.compliance.audit import AuditRecorder
+    from saap.compliance.chain import Envelope
+    from saap.core.types import Message
+
+    store = InMemoryAuditStore()
+    recorder = AuditRecorder(store)
+    envelope = Envelope(
+        tenant,
+        Message(role="assistant", content="I'm not able to help with that request."),
+        metadata={"violation": "consent_gate"},
+    )
+    await recorder.after(tenant, envelope)
+
+    rows = await store.rows_for(tenant)
+    assert rows[-1].kind == "refusal"
+    assert rows[-1].payload["violation"] == "consent_gate"
+
+
+async def test_audit_recorder_after_logs_response_kind_without_violation(tenant: TenantContext) -> None:
+    from saap.compliance.audit import AuditRecorder
+    from saap.compliance.chain import Envelope
+    from saap.core.types import Message
+
+    store = InMemoryAuditStore()
+    recorder = AuditRecorder(store)
+    envelope = Envelope(tenant, Message(role="assistant", content="Sure, here's the answer."))
+    await recorder.after(tenant, envelope)
+
+    rows = await store.rows_for(tenant)
+    assert rows[-1].kind == "response"
