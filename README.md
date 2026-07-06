@@ -10,32 +10,36 @@ and compliance-by-construction (DPDP/GDPR) multi-tenant operations.
 
 This repository contains the Phase 0/1 implementation: the plugin
 contract layer (`saap.core`), the non-bypassable compliance chain
-(`saap.compliance`), first-party plugins (Ollama, Qdrant), and a
-working chat gateway — the foundation every later phase builds on.
+(`saap.compliance`), the Langflow component governance logic, the RAG
+ingestion pipeline, first-party plugins and MCP servers, and a working
+chat gateway — the foundation every later phase builds on.
 
 ## Repository layout
 
 ```
 saap/
-├── core/                 interfaces only — types, llm, memory, mcp, flow, registry, events
-├── compliance/            L5 interceptor chain: consent, PII masking, policy, rate limit, audit
+├── core/                  interfaces only — types, llm, memory, mcp, flow, registry, events
+├── compliance/             L5 interceptor chain: consent, PII masking, policy, rate limit, audit
 ├── plugins/
-│   ├── llm/ollama/        LLMProvider over a local Ollama daemon
-│   └── memory/qdrant/     VectorStore over Qdrant
-├── gateway/                FastAPI app, WebChatAdapter, LangflowHTTPRuntime
-├── langflow_components/   (Phase 1 Epic 1.5 — SAAP custom component library)
-├── scheduler/             (Phase 4 — FlowScheduler)
-├── tenancy/               (Phase 4 — blueprint engine)
-└── ingest/                (Phase 1 Epic 1.2 — document ingestion pipeline)
-flows/                     exported Langflow flow JSON (Git-versioned)
-mcp-servers/                first-party MCP servers (calendar, sql-readonly, ...)
-migrations/                Alembic schema: tenants, consent, audit, campaigns, approvals, flows, lineage
+│   ├── llm/ollama/         LLMProvider over a local Ollama daemon
+│   └── memory/qdrant/      VectorStore over Qdrant
+├── gateway/                 FastAPI app, WebChatAdapter, LangflowHTTPRuntime
+├── langflow_components/
+│   └── logic/               framework-agnostic logic behind each sealed canvas component
+├── ingest/                  document ingestion pipeline (parse -> classify -> chunk -> embed -> lineage)
+├── scheduler/               (Phase 4 — FlowScheduler)
+└── tenancy/                 (Phase 4 — blueprint engine)
+flows/                       exported Langflow flow JSON (Git-versioned) — Phase 1 Epic 1.5, not yet authored
+mcp-servers/
+├── calendar/                 list_slots / book_slot / cancel_slot over a CalendarStore protocol
+└── sql-readonly/             single `query` tool, sqlparse-gated to SELECT-only
+migrations/                  Alembic schema: tenants, consent, audit, campaigns, approvals, flows, lineage
 tools/
-├── license_gate/          P1 enforcement — CI fails on non-OSI dependency licenses
-├── flow_linter/           (Phase 1 Epic 1.5 — sealed-component / compliance-path linter)
-└── eval_harness/          (Phase 1 Epic 1.6 — golden-transcript regression suite)
-deploy/                     docker-compose dev profile, Dockerfiles
-tests/                      mirrors saap/ + tools/
+├── license_gate/            P1 enforcement — CI fails on non-OSI dependency licenses
+├── flow_linter/              sealed-component / compliance-path linter over exported flow JSON
+└── eval_harness/             golden-transcript regression suite (YAML assertions on tool calls + grounding)
+deploy/                      docker-compose dev profile, Dockerfiles
+tests/                       mirrors saap/ + tools/ + mcp-servers/
 ```
 
 ## Quickstart (dev)
@@ -83,18 +87,31 @@ change needed to move from the dev fallback to production.
 | Area | Status |
 |------|--------|
 | `saap.core` contracts (types, llm, memory, mcp, flow, registry, events) | ✅ Implemented, mypy `--strict`, 100% fakes-tested |
-| L5 compliance chain (consent, PII masking, policy, rate limit, audit) | ✅ Implemented, in-memory + OPA/Presidio-backed variants |
-| LicenseGate (P1 enforcement) | ✅ Implemented, verified clean against this repo's own dependencies |
+| L5 compliance chain (consent, PII masking, policy, rate limit, audit) | ✅ Implemented, in-memory + OPA/Presidio-backed variants, two-phase split for canvas use |
+| LicenseGate (P1 enforcement) | ✅ Implemented, verified clean against this repo's own 107 dependencies |
 | Ollama LLMProvider, Qdrant VectorStore | ✅ Implemented |
 | Gateway + WebChatAdapter | ✅ Implemented (dev fallback + real `LangflowHTTPRuntime`) |
 | Postgres schema (Alembic) | ✅ Implemented |
 | CI (lint, typecheck, tests, LicenseGate, migration check) | ✅ Implemented |
-| SAAP Langflow custom component library (`ComplianceIngress`, `MCPToolkit`, etc.) | ⬜ Phase 1 Epic 1.5 |
-| Flow Linter | ⬜ Phase 1 Epic 1.5 |
-| RAG ingestion pipeline (Docling, Dagster assets) | ⬜ Phase 1 Epic 1.2 |
+| SAAP Langflow component **logic** (ComplianceIngress, MCPToolkit, GroundedResponder, HITLCheckpoint, AuditClose, ModelRouterLLM, RAGRetriever) | ✅ Implemented, fully unit-tested; thin `langflow.custom.Component` adapters not yet built/verified (the `langflow` package is too heavy to install for this environment — see note below) |
+| Flow Linter | ✅ Implemented — parses exported flow JSON, enforces sealed entry/grounding/audit-close/no-raw-HTTP/checksum-pinning rules |
+| RAG ingestion pipeline (parse, PII-classify, chunk, embed, lineage) | ✅ Implemented (`PlainTextParser` dependency-free default; Docling slots in via the same protocol) |
+| First-party MCP servers (calendar, sql-readonly) | ✅ Implemented on the real official `mcp` SDK, not a mock |
+| Eval harness (golden transcripts) | ✅ Implemented — YAML assertions on response text, tool calls, grounding |
 | Voice pipeline (LiveKit, FreeSWITCH, faster-whisper, Piper) | ⬜ Phase 2 |
 | Multilingual/Indic pipeline | ⬜ Phase 3 |
 | Tenant blueprint engine, CRM, billing | ⬜ Phase 4 |
 | Vertical packs, AI Audit flow | ⬜ Phase 5 |
+
+**Note on the Langflow canvas integration:** the real `langflow` PyPI
+package pulls in `langflow-base[complete]`, a very large dependency
+tree (full web app, many optional vector/embedding backends) that
+wasn't practical to install in this environment. Rather than guess at
+`langflow.custom.Component`'s exact API and risk shipping adapter code
+that's subtly wrong, the governance logic behind each sealed component
+was built and fully tested as plain, framework-agnostic Python
+(`saap/langflow_components/logic/`). Wiring a thin `Component` subclass
+per architecture Section 5.2's documented pattern is the remaining
+step, verified against a real Langflow install.
 
 See `implementation-plan.md` for the full phase-by-phase roadmap.
