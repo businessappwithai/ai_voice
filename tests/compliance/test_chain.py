@@ -72,3 +72,56 @@ def test_envelope_with_message_merges_metadata(tenant: TenantContext) -> None:
     assert updated.metadata == {"a": 1, "b": 2}
     assert updated.message.content == "bye"
     assert envelope.message.content == "hi"  # original untouched
+
+
+async def test_run_before_then_run_after_matches_wrap_ordering(tenant: TenantContext) -> None:
+    log: list[str] = []
+    chain = ComplianceChain([RecordingInterceptor("a", log), RecordingInterceptor("b", log)])
+    envelope = Envelope(tenant, Message(role="user", content="hi"))
+
+    envelope = await chain.run_before(tenant, envelope)
+    log.append("inner")  # the canvas's own nodes run here, between the two phases
+    await chain.run_after(tenant, envelope)
+
+    assert log == ["a.before", "b.before", "inner", "b.after", "a.after"]
+
+
+async def test_run_before_short_circuits_and_records_only_ran_interceptors(
+    tenant: TenantContext,
+) -> None:
+    log: list[str] = []
+    chain = ComplianceChain(
+        [RecordingInterceptor("a", log), RecordingInterceptor("b", log, deny=True), RecordingInterceptor("c", log)]
+    )
+    envelope = Envelope(tenant, Message(role="user", content="hi"))
+
+    result = await chain.run_before(tenant, envelope)
+    assert log == ["a.before", "b.before"]  # c never ran
+    # "b" raised from within its own before() call, so it never completed
+    # and is not recorded as "ran" — same as wrap()'s semantics.
+    assert result.metadata["_ran_interceptors"] == ["a"]
+    assert result.metadata["violation"] == "b"
+    assert "not able to help" in result.message.content
+
+
+async def test_run_after_only_calls_after_on_recorded_interceptors(tenant: TenantContext) -> None:
+    log: list[str] = []
+    chain = ComplianceChain(
+        [RecordingInterceptor("a", log), RecordingInterceptor("b", log, deny=True), RecordingInterceptor("c", log)]
+    )
+    envelope = Envelope(tenant, Message(role="user", content="hi"))
+
+    refused = await chain.run_before(tenant, envelope)
+    log.clear()
+    await chain.run_after(tenant, refused)
+    # Only "a" completed before(); neither "b" (raised mid-call) nor "c"
+    # (never reached) get an after() call, mirroring wrap()'s semantics.
+    assert log == ["a.after"]
+
+
+async def test_run_after_with_no_prior_run_before_is_a_noop(tenant: TenantContext) -> None:
+    log: list[str] = []
+    chain = ComplianceChain([RecordingInterceptor("a", log)])
+    envelope = Envelope(tenant, Message(role="user", content="hi"))
+    await chain.run_after(tenant, envelope)  # no _ran_interceptors metadata at all
+    assert log == []

@@ -118,6 +118,54 @@ class ComplianceChain:
             envelope = await interceptor.after(tenant, envelope)
         return envelope
 
+    async def run_before(self, tenant: TenantContext, envelope: Envelope) -> Envelope:
+        """Two-phase variant of `wrap` for callers that can't hold a
+        Python call stack across the "inner" step — namely the Langflow
+        canvas, where `ComplianceIngress` (this phase) and `AuditClose`
+        (`run_after`, below) are two separate graph nodes, not nested
+        function calls. Which interceptors actually ran is threaded
+        through envelope metadata (`_ran_interceptors`) so `run_after`
+        can mirror `wrap`'s exact short-circuit semantics: only
+        interceptors whose `before` executed get their `after` called.
+
+        On a ComplianceViolation, returns immediately with the same safe
+        refusal message `wrap` would produce, rather than raising — a
+        canvas node has no exception channel to the rest of the graph,
+        only an output message. Downstream components (GroundedResponder,
+        MCPToolkit) must treat `metadata["compliance_violation"]` as a
+        hard stop, same as `RuntimeRefused` is for the gateway path.
+        """
+        ran: list[str] = []
+        try:
+            for interceptor in self._interceptors:
+                envelope = await interceptor.before(tenant, envelope)
+                ran.append(interceptor.name)
+        except ComplianceViolation as violation:
+            return envelope.with_message(
+                Message(
+                    role="assistant",
+                    content=self._safe_refusal_text(violation),
+                    metadata={"compliance_violation": violation.interceptor},
+                ),
+                violation=violation.interceptor,
+                _ran_interceptors=ran,
+            )
+        return envelope.with_message(envelope.message, _ran_interceptors=ran)
+
+    async def run_after(self, tenant: TenantContext, envelope: Envelope) -> Envelope:
+        """Companion to `run_before`; called by `AuditClose`. Runs
+        `after()` in reverse order for exactly the interceptors recorded
+        by `run_before` in `_ran_interceptors` — interceptors whose
+        `before` never executed (because an earlier one short-circuited)
+        never see this envelope's `after` either, matching `wrap`."""
+        ran_names: list[str] = envelope.metadata.get("_ran_interceptors", [])
+        by_name = {i.name: i for i in self._interceptors}
+        for name in reversed(ran_names):
+            interceptor = by_name.get(name)
+            if interceptor is not None:
+                envelope = await interceptor.after(tenant, envelope)
+        return envelope
+
     @staticmethod
     def _safe_refusal_text(violation: ComplianceViolation) -> str:
         # Deliberately generic — the real reason lives in the audit row,
