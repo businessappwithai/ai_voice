@@ -22,6 +22,8 @@ dependencies = [
     "importlib_metadata>=7.0",
     "packaging>=24.0",
     "PyYAML>=6.0",
+    "PyJWT[crypto]>=2.8",
+    "websockets>=12.0",
 ]
 
 [project.optional-dependencies]
