@@ -46,16 +46,33 @@ _RECOGNIZER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("IN_PHONE", IN_PHONE_RE),
 )
 
+# --- vertical-pack recognizer patterns --------------------------------------
+# Extra entity types enabled per tenant vertical, on top of (never
+# instead of) the core Indian-market recognizers above. Epic 5.1
+# (dental/healthcare vertical pack) calls for ICD-code recognizers
+# specifically; format per the ICD-10-CM spec: a leading letter
+# (excluding U, reserved for provisional WHO codes), two alphanumeric
+# category digits, then an optional decimal point and up to four more
+# alphanumeric characters (e.g. "F32.9", "E11.9", "S72.001A").
+ICD10_RE = re.compile(r"\b[A-TV-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?\b")
 
-def build_indian_recognizers() -> list[Any]:
-    """Constructs Presidio PatternRecognizer instances for the Indian
-    market entities. Imported lazily inside this function so the module
-    is importable (and unit-testable via `SimplePIIAnalyzer` below)
-    without the `presidio-analyzer` package installed in every context."""
+_VERTICAL_RECOGNIZER_PATTERNS: dict[str, tuple[tuple[str, re.Pattern[str]], ...]] = {
+    "dental": (("ICD10", ICD10_RE),),
+    "healthcare": (("ICD10", ICD10_RE),),
+}
+
+
+def _vertical_patterns(vertical: str | None) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    if vertical is None:
+        return ()
+    return _VERTICAL_RECOGNIZER_PATTERNS.get(vertical, ())
+
+
+def _build_recognizers(patterns: tuple[tuple[str, re.Pattern[str]], ...]) -> list[Any]:
     from presidio_analyzer import Pattern, PatternRecognizer
 
     recognizers = []
-    for entity, pattern in _RECOGNIZER_PATTERNS:
+    for entity, pattern in patterns:
         recognizers.append(
             PatternRecognizer(
                 supported_entity=entity,
@@ -63,6 +80,22 @@ def build_indian_recognizers() -> list[Any]:
             )
         )
     return recognizers
+
+
+def build_indian_recognizers() -> list[Any]:
+    """Constructs Presidio PatternRecognizer instances for the Indian
+    market entities. Imported lazily inside this function so the module
+    is importable (and unit-testable via `SimplePIIAnalyzer` below)
+    without the `presidio-analyzer` package installed in every context."""
+    return _build_recognizers(_RECOGNIZER_PATTERNS)
+
+
+def build_vertical_recognizers(vertical: str) -> list[Any]:
+    """Presidio PatternRecognizer instances for a tenant vertical's
+    extra entity types (e.g. ICD-10 diagnosis codes for dental/
+    healthcare tenants, Epic 5.1) — additive to, never a replacement
+    for, the core Indian-market recognizers."""
+    return _build_recognizers(_vertical_patterns(vertical))
 
 
 @dataclass(frozen=True)
@@ -86,11 +119,18 @@ class SimplePIIAnalyzer:
     minimal PERSON/PHONE heuristic. Used as the default when the full
     Presidio `AnalyzerEngine` (spaCy NER model) isn't loaded — e.g. in
     unit tests and CI's CPU-only path. Production deployments should
-    bind `PresidioAnalyzer` (below) instead via the registry."""
+    bind `PresidioAnalyzer` (below) instead via the registry.
+
+    `vertical` opts into that tenant's extra entity types (e.g.
+    "dental"/"healthcare" -> ICD-10 codes, Epic 5.1); omitted or
+    unrecognized verticals get the core Indian-market set only."""
+
+    def __init__(self, vertical: str | None = None) -> None:
+        self._patterns = (*_RECOGNIZER_PATTERNS, *_vertical_patterns(vertical))
 
     def analyze(self, text: str) -> list[DetectedEntity]:
         found: list[DetectedEntity] = []
-        for entity, pattern in _RECOGNIZER_PATTERNS:
+        for entity, pattern in self._patterns:
             for m in pattern.finditer(text):
                 found.append(DetectedEntity(entity, m.start(), m.end(), m.group()))
         return found
@@ -99,13 +139,14 @@ class SimplePIIAnalyzer:
 class PresidioAnalyzer:
     """Production analyzer: real Presidio AnalyzerEngine + the Indian
     PatternRecognizers registered above, plus Presidio's built-in
-    PERSON/EMAIL/LOCATION recognizers (spaCy-backed)."""
+    PERSON/EMAIL/LOCATION recognizers (spaCy-backed). `vertical` opts
+    into that tenant's extra entity types, same as `SimplePIIAnalyzer`."""
 
-    def __init__(self) -> None:
+    def __init__(self, vertical: str | None = None) -> None:
         from presidio_analyzer import AnalyzerEngine
 
         self._engine = AnalyzerEngine()
-        for recognizer in build_indian_recognizers():
+        for recognizer in (*build_indian_recognizers(), *build_vertical_recognizers(vertical or "")):
             self._engine.registry.add_recognizer(recognizer)
 
     def analyze(self, text: str) -> list[DetectedEntity]:
