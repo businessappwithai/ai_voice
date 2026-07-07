@@ -31,6 +31,7 @@ dependencies = [
     "numpy>=1.26",
     "faster-whisper>=1.0",
     "lago-python-client>=1.49",
+    "matrix-nio>=0.25",
     # Deliberately NOT depending on the `piper-tts` PyPI package here —
     # see saap/plugins/voice/piper/__init__.py's module docstring for
     # why (short version: it either IS GPL-3.0-or-later, as of 1.3.0+,

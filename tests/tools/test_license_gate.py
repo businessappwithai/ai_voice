@@ -104,3 +104,25 @@ def test_default_policy_still_reviews_lgpl_not_caught_by_new_gpl_denial() -> Non
         "foo", "GNU Lesser General Public License v3 (LGPLv3)", DEFAULT_POLICY
     )
     assert verdict == "review"
+
+
+def test_default_policy_allows_apache_license_2_0_license_field_variant() -> None:
+    # Regression test for a real finding: `multidict`'s License field
+    # is literally "Apache License 2.0" — not a substring of any of
+    # "Apache-2.0" / "Apache 2.0" / "Apache Software License", so it
+    # landed in the non-blocking "unknown" bucket until this entry was
+    # added, despite being genuinely Apache-2.0 (verified via the
+    # wheel's bundled LICENSE file).
+    verdict, reason = _classify("multidict", "Apache License 2.0", DEFAULT_POLICY)
+    assert verdict == "allow"
+
+
+def test_default_policy_allows_matrix_nio_style_isc_license_field() -> None:
+    # matrix-nio's License field is the full LICENSE file text, which
+    # starts with "Internet Systems Consortium license" rather than
+    # the bare acronym "ISC" — not a substring match against the
+    # existing "ISC" entry, so this needed its own allow-list entry.
+    verdict, reason = _classify(
+        "matrix-nio", "Internet Systems Consortium license\n===...", DEFAULT_POLICY
+    )
+    assert verdict == "allow"

@@ -33,7 +33,8 @@ DEFAULT_POLICY_PATH = Path(__file__).parent / "policy.yaml"
 # standalone, e.g. from a one-off shell). The registry's
 # DEFAULT_ALLOWED_LICENSES should stay in sync with `allow` here.
 DEFAULT_POLICY: dict = {
-    "allow": ["MIT", "Apache-2.0", "Apache 2.0", "Apache Software License", "BSD", "MPL-2.0",
+    "allow": ["MIT", "Apache-2.0", "Apache 2.0", "Apache License 2.0", "Apache Software License",
+              "Internet Systems Consortium", "BSD", "MPL-2.0",
               "Mozilla Public License 2.0 (MPL 2.0)", "PostgreSQL", "AGPL-3.0",
               "GNU Affero General Public License v3", "ISC", "PSF", "Python Software Foundation",
               "The Unlicense (Unlicense)"],
