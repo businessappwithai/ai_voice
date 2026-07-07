@@ -89,7 +89,8 @@ change needed to move from the dev fallback to production.
 | `saap.core` contracts (types, llm, memory, mcp, flow, registry, events) | ✅ Implemented, mypy `--strict`, 100% fakes-tested |
 | L5 compliance chain (consent, PII masking, policy, rate limit, audit) | ✅ Implemented, in-memory + OPA/Presidio-backed variants, two-phase split for canvas use |
 | LicenseGate (P1 enforcement) | ✅ Implemented, verified clean against this repo's own 107 dependencies |
-| Ollama LLMProvider, Qdrant VectorStore | ✅ Implemented |
+| LLMProvider adapters (Ollama, vLLM) | ✅ Implemented — proves P3 swappability |
+| VectorStore adapters (Qdrant, pgvector) | ✅ Implemented — `PgVectorStore` verified against a real local Postgres+pgvector instance |
 | Gateway + WebChatAdapter | ✅ Implemented (dev fallback + real `LangflowHTTPRuntime`) |
 | Postgres schema (Alembic) | ✅ Implemented |
 | CI (lint, typecheck, tests, LicenseGate, migration check) | ✅ Implemented |
@@ -98,7 +99,11 @@ change needed to move from the dev fallback to production.
 | RAG ingestion pipeline (parse, PII-classify, chunk, embed, lineage) | ✅ Implemented (`PlainTextParser` dependency-free default; Docling slots in via the same protocol) |
 | First-party MCP servers (calendar, sql-readonly) | ✅ Implemented on the real official `mcp` SDK, not a mock |
 | Eval harness (golden transcripts) | ✅ Implemented — YAML assertions on response text, tool calls, grounding |
-| Voice pipeline (LiveKit, FreeSWITCH, faster-whisper, Piper) | ⬜ Phase 2 |
+| Voice contracts (`VAD`/`StreamingSTT`/`StreamingTTS` protocols, `LatencyLedger`) | ✅ Implemented |
+| `SileroVAD` adapter | ✅ Implemented — real ONNX model (extracted from the MIT-licensed `silero-vad` wheel) via `onnxruntime`, not the `silero-vad` package (avoids its `torch` dependency) |
+| `FasterWhisperSTT` adapter | 🟡 Implemented against faster-whisper's real API, but only exercised with an injected fake model — real Whisper weights aren't downloadable in this environment (Hugging Face egress is blocked) |
+| Piper TTS adapter | 🟡 `PiperTTS` streaming wrapper implemented and tested; `register()` deliberately raises — the `piper-tts` PyPI package is license-unclean under P1 (see `saap/plugins/voice/piper/__init__.py`: `>=1.3.0` is GPL-3.0-or-later, `<=1.2.0` bundles a compiled GPL-3.0 `libespeak-ng.so` under an MIT label). LicenseGate's deny list now covers GPL-2.0/3.0 so a future re-add fails the build. The license-clean path (raw ONNX inference + arms-length `espeak-ng` subprocess) is not yet built |
+| LiveKit/FreeSWITCH transport, voice session runtime | ⬜ Phase 2 (remaining) |
 | Multilingual/Indic pipeline | ⬜ Phase 3 |
 | Tenant blueprint engine, CRM, billing | ⬜ Phase 4 |
 | Vertical packs, AI Audit flow | ⬜ Phase 5 |
