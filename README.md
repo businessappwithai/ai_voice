@@ -109,6 +109,7 @@ change needed to move from the dev fallback to production.
 | `ErasureService` (per-source vector deletion + token-vault crypto-shred, signed HMAC erasure certificate chained into the audit trail) | ✅ Implemented and tested — the two storage surfaces this codebase has real adapters for; Postgres/MinIO purge deferred (no first-party client for either yet) |
 | Indic STT/TTS voices (IndicConformer/IndicWhisper, Piper ta-IN/hi-IN), Consent Manager integration, 72-hour breach protocol | ⬜ Phase 3 (remaining) |
 | `FlowScheduler` (campaign_enrollments claim/consent-check/dispatch/settle, crash-safe via optimistic version compare-and-swap) | ✅ Implemented and tested against the real `campaign_enrollments` schema shape (migrations/versions/0001_initial_schema.py) — Postgres-backed `EnrollmentStore` not yet written, tested against `InMemoryEnrollmentStore`'s identical CAS semantics |
+| `WebhookAdapter` (HMAC-signed ingress channel, `sha256=` signature verification before tenant resolution) | ✅ Implemented and tested — the `ChannelAdapter` contract's per-request one-shot channel for client-system POSTs (Epic 4.5) |
 | Tenant blueprint engine, CRM (Twenty), billing (Lago) | ⬜ Phase 4 (remaining) |
 | Vertical packs, AI Audit flow | ⬜ Phase 5 |
 
