@@ -1,0 +1,55 @@
+# SAAP LicenseGate policy (P1 — open source only).
+#
+# `allow`: substrings matched case-insensitively against a package's
+#   declared license metadata (PyPI trove classifier or License field).
+# `review`: builds, but the dependency needs a human sign-off before
+#   it ships to production (tracked in the quarterly re-scan, plan §16).
+# `deny`: build fails immediately.
+# `known_overrides`: packages whose license metadata is missing/wrong
+#   on PyPI but whose real upstream license is verified — always
+#   document the verification source in the value.
+
+allow:
+  - MIT
+  - Apache-2.0
+  - Apache 2.0
+  - Apache Software License
+  - BSD
+  - MPL-2.0
+  - Mozilla Public License 2.0 (MPL 2.0)
+  - PostgreSQL
+  - AGPL-3.0
+  - GNU Affero General Public License v3
+  - ISC
+  - PSF
+  - Python Software Foundation
+  - The Unlicense (Unlicense)
+
+review:
+  - LGPL
+  - GNU Lesser General Public License
+  - SUL-1.0
+
+deny:
+  - BUSL-1.1
+  - Business Source License
+  - RSALv2
+  - Server Side Public License
+  - SSPL
+  - Commons Clause
+  - Proprietary
+  # GPL-2.0/3.0: real incident, not theoretical — `piper-tts>=1.3.0`
+  # (github.com/OHF-voice/piper1-gpl) relicensed to GPL-3.0-or-later;
+  # older `piper-tts<=1.2.0` claimed MIT while bundling a compiled
+  # libespeak-ng.so (espeak-ng itself is GPL-3.0 upstream), which is
+  # arguably a mislabeled violation rather than a safe alternative.
+  # SAAP does not depend on either — see
+  # saap/plugins/voice/piper/__init__.py's module docstring. Denied
+  # here so a future re-add fails the build instead of silently
+  # landing in the "unknown" (non-blocking) bucket.
+  - GPL-2.0
+  - GPL-3.0
+  - GNU General Public License
+
+known_overrides:
+  setuptools: "PSF/MIT-equivalent; PyPI metadata omits the classifier for this bootstrap package"
