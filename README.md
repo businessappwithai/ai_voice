@@ -108,7 +108,8 @@ change needed to move from the dev fallback to production.
 | `TranslationProvider` contract + `ProtectedSpanTranslator` (PII vault tokens survive the "pivot at the edges" language translation) | ✅ Implemented and tested against a fake NMT provider (including a corrupted/dropped-sentinel fail-closed case) — real `IndicTrans2` adapter not yet built (model weights unreachable) |
 | `ErasureService` (per-source vector deletion + token-vault crypto-shred, signed HMAC erasure certificate chained into the audit trail) | ✅ Implemented and tested — the two storage surfaces this codebase has real adapters for; Postgres/MinIO purge deferred (no first-party client for either yet) |
 | Indic STT/TTS voices (IndicConformer/IndicWhisper, Piper ta-IN/hi-IN), Consent Manager integration, 72-hour breach protocol | ⬜ Phase 3 (remaining) |
-| Tenant blueprint engine, CRM, billing | ⬜ Phase 4 |
+| `FlowScheduler` (campaign_enrollments claim/consent-check/dispatch/settle, crash-safe via optimistic version compare-and-swap) | ✅ Implemented and tested against the real `campaign_enrollments` schema shape (migrations/versions/0001_initial_schema.py) — Postgres-backed `EnrollmentStore` not yet written, tested against `InMemoryEnrollmentStore`'s identical CAS semantics |
+| Tenant blueprint engine, CRM (Twenty), billing (Lago) | ⬜ Phase 4 (remaining) |
 | Vertical packs, AI Audit flow | ⬜ Phase 5 |
 
 **Note on the Langflow canvas integration:** the real `langflow` PyPI
