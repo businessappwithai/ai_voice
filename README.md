@@ -105,7 +105,8 @@ change needed to move from the dev fallback to production.
 | Piper TTS adapter | 🟡 `PiperTTS` streaming wrapper implemented and tested; `register()` deliberately raises — the `piper-tts` PyPI package is license-unclean under P1 (see `saap/plugins/voice/piper/__init__.py`: `>=1.3.0` is GPL-3.0-or-later, `<=1.2.0` bundles a compiled GPL-3.0 `libespeak-ng.so` under an MIT label). LicenseGate's deny list now covers GPL-2.0/3.0 so a future re-add fails the build. The license-clean path (raw ONNX inference + arms-length `espeak-ng` subprocess) is not yet built |
 | `VoiceSessionRuntime` (VAD→STT→DialogEngine→TTS turn-taking, latency ledger, barge-in) | ✅ Implemented and fake-tested — the turn-taking/instrumentation half of Epic 2.3's `VoicePipelineFactory` |
 | LiveKit Agents worker, SIP/FreeSWITCH transport, GPU load hardening | ⬜ Phase 2 (remaining) — no LiveKit server, SIP trunk, or GPU reachable in this environment |
-| Multilingual/Indic pipeline | ⬜ Phase 3 |
+| `TranslationProvider` contract + `ProtectedSpanTranslator` (PII vault tokens survive the "pivot at the edges" language translation) | ✅ Implemented and tested against a fake NMT provider (including a corrupted/dropped-sentinel fail-closed case) — real `IndicTrans2` adapter not yet built (model weights unreachable) |
+| Indic STT/TTS voices (IndicConformer/IndicWhisper, Piper ta-IN/hi-IN), Consent Manager integration, erasure job, breach protocol | ⬜ Phase 3 (remaining) |
 | Tenant blueprint engine, CRM, billing | ⬜ Phase 4 |
 | Vertical packs, AI Audit flow | ⬜ Phase 5 |
 
