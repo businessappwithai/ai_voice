@@ -113,7 +113,8 @@ change needed to move from the dev fallback to production.
 | `TenantBlueprint` schema (YAML) + `TenantProvisioner` (idempotent apply/plan/destroy across resource ports, Terraform-style dry-run drift detection) | ✅ Implemented and tested — concrete ports (Keycloak realm, Qdrant namespace, Postgres schema, OPA doc, MCP config, CRM workspace) not bound to real services; `ErasureService` composition into `destroy` left to the calling CLI (no per-tenant source registry yet to enumerate from) |
 | `policies/saap_actions.rego` + `policies/tenant/dental_clinic.rego` (the Rego source of truth `InMemoryPolicyGuard` restates in Python, referenced but missing until now) | 🟡 Written to mirror `InMemoryPolicyGuard`'s exact three-tier table and `tests/compliance/test_policy.py`'s scenarios (see `saap_actions_test.rego`), but never run through a real `opa` binary in this sandbox (no network path to fetch one) — a new CI job (`opa-policy-test`, via `open-policy-agent/setup-opa`) runs `opa test policies/` for real on every PR |
 | CRM (Twenty), billing (Lago) | ⬜ Phase 4 (remaining) |
-| Vertical packs, AI Audit flow | ⬜ Phase 5 |
+| `LeadScoreExtractor` (real estate vertical, Epic 5.2): grammar-constrained `{budget, timeline, preapproved, bedrooms}` extraction + hot/warm/cold scoring | ✅ Implemented and tested against `FakeLLMProvider`'s `json_schema` contract |
+| Remaining vertical packs (dental/healthcare, legal/e-commerce), AI Audit flow | ⬜ Phase 5 (remaining) — largely Langflow flow JSON + Rego authoring rather than Python, and this codebase can't install/verify against the real `langflow` package (see note below) |
 
 **Note on the Langflow canvas integration:** the real `langflow` PyPI
 package pulls in `langflow-base[complete]`, a very large dependency
