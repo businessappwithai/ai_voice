@@ -39,7 +39,8 @@ DEFAULT_POLICY: dict = {
               "The Unlicense (Unlicense)"],
     "review": ["LGPL", "GNU Lesser General Public License", "SUL-1.0"],
     "deny": ["BUSL-1.1", "Business Source License", "RSALv2", "Server Side Public License",
-             "SSPL", "Commons Clause", "Proprietary"],
+             "SSPL", "Commons Clause", "Proprietary", "GPL-2.0", "GPL-3.0",
+             "GNU General Public License"],
     # Packages whose PyPI classifier is missing/ambiguous but whose real
     # license is verified out-of-band. Each entry documents WHY.
     "known_overrides": {

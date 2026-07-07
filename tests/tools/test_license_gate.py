@@ -1,4 +1,10 @@
-from tools.license_gate.gate import GateReport, PackageVerdict, _classify, format_text_report
+from tools.license_gate.gate import (
+    DEFAULT_POLICY,
+    GateReport,
+    PackageVerdict,
+    _classify,
+    format_text_report,
+)
 
 POLICY = {
     "allow": ["MIT", "Apache-2.0"],
@@ -78,3 +84,23 @@ def test_format_text_report_all_clear() -> None:
     )
     text = format_text_report(report, strict=False)
     assert "passed LicenseGate" in text
+
+
+def test_default_policy_denies_gpl3_piper_style_license() -> None:
+    # Regression test for the piper-tts>=1.3.0 finding (GPL-3.0-or-later,
+    # github.com/OHF-voice/piper1-gpl) — see
+    # saap/plugins/voice/piper/__init__.py's module docstring. A future
+    # re-add of that dependency must fail the build, not land in the
+    # non-blocking "unknown" bucket.
+    verdict, reason = _classify("piper-tts", "GPL-3.0-or-later", DEFAULT_POLICY)
+    assert verdict == "deny"
+
+
+def test_default_policy_still_reviews_lgpl_not_caught_by_new_gpl_denial() -> None:
+    # "GNU Lesser General Public License" must not collide with the
+    # "GNU General Public License" deny-list substring added alongside
+    # the piper-tts finding.
+    verdict, reason = _classify(
+        "foo", "GNU Lesser General Public License v3 (LGPLv3)", DEFAULT_POLICY
+    )
+    assert verdict == "review"

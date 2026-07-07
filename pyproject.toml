@@ -27,6 +27,15 @@ dependencies = [
     "mcp>=1.0",
     "sqlparse>=0.5",
     "pgvector>=0.3",
+    "onnxruntime>=1.16",
+    "numpy>=1.26",
+    "faster-whisper>=1.0",
+    # Deliberately NOT depending on the `piper-tts` PyPI package here —
+    # see saap/plugins/voice/piper/__init__.py's module docstring for
+    # why (short version: it either IS GPL-3.0-or-later, as of 1.3.0+,
+    # or bundles a compiled libespeak-ng.so, itself GPL-3.0, under an
+    # MIT label, as of <=1.2.0 — neither is safe to add as a direct
+    # dependency under P1).
 ]
 
 [project.optional-dependencies]
@@ -43,6 +52,9 @@ dev = [
 "llm.vllm" = "saap.plugins.llm.vllm:register"
 "memory.qdrant" = "saap.plugins.memory.qdrant:register"
 "memory.pgvector" = "saap.plugins.memory.pgvector:register"
+"voice.silero" = "saap.plugins.voice.silero:register"
+"voice.faster_whisper" = "saap.plugins.voice.faster_whisper:register"
+"voice.piper" = "saap.plugins.voice.piper:register"
 
 [tool.ruff]
 line-length = 100
