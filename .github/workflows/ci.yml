@@ -51,6 +51,23 @@ jobs:
       - name: LicenseGate
         run: python -m tools.license_gate.gate
 
+  opa-policy-test:
+    # Validates policies/*.rego for real: this sandbox has no network
+    # path to download an `opa` binary, so saap_actions.rego and
+    # policies/tenant/dental_clinic.rego were written but never run
+    # through `opa test` locally — this job is where that actually
+    # happens, on every PR, against the genuine OPA binary.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: open-policy-agent/setup-opa@v2
+        with:
+          version: latest
+
+      - name: opa test (Rego policy pack)
+        run: opa test policies/ -v
+
   migration-check:
     runs-on: ubuntu-latest
     services:

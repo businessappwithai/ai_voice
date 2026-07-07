@@ -13,7 +13,9 @@ allow:
   - MIT
   - Apache-2.0
   - Apache 2.0
+  - Apache License 2.0
   - Apache Software License
+  - Internet Systems Consortium
   - BSD
   - MPL-2.0
   - Mozilla Public License 2.0 (MPL 2.0)
