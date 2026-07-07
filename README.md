@@ -106,7 +106,8 @@ change needed to move from the dev fallback to production.
 | `VoiceSessionRuntime` (VAD→STT→DialogEngine→TTS turn-taking, latency ledger, barge-in) | ✅ Implemented and fake-tested — the turn-taking/instrumentation half of Epic 2.3's `VoicePipelineFactory` |
 | LiveKit Agents worker, SIP/FreeSWITCH transport, GPU load hardening | ⬜ Phase 2 (remaining) — no LiveKit server, SIP trunk, or GPU reachable in this environment |
 | `TranslationProvider` contract + `ProtectedSpanTranslator` (PII vault tokens survive the "pivot at the edges" language translation) | ✅ Implemented and tested against a fake NMT provider (including a corrupted/dropped-sentinel fail-closed case) — real `IndicTrans2` adapter not yet built (model weights unreachable) |
-| Indic STT/TTS voices (IndicConformer/IndicWhisper, Piper ta-IN/hi-IN), Consent Manager integration, erasure job, breach protocol | ⬜ Phase 3 (remaining) |
+| `ErasureService` (per-source vector deletion + token-vault crypto-shred, signed HMAC erasure certificate chained into the audit trail) | ✅ Implemented and tested — the two storage surfaces this codebase has real adapters for; Postgres/MinIO purge deferred (no first-party client for either yet) |
+| Indic STT/TTS voices (IndicConformer/IndicWhisper, Piper ta-IN/hi-IN), Consent Manager integration, 72-hour breach protocol | ⬜ Phase 3 (remaining) |
 | Tenant blueprint engine, CRM, billing | ⬜ Phase 4 |
 | Vertical packs, AI Audit flow | ⬜ Phase 5 |
 
