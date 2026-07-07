@@ -57,6 +57,20 @@ class StreamingTTS(Protocol):
     def synthesize(self, text_stream: AsyncIterator[str]) -> AsyncIterator[bytes]: ...
 
 
+class DialogEngine(Protocol):
+    """Turns one finalized user utterance into a streamed text reply.
+
+    Deliberately opaque to `VoiceSessionRuntime`: a real binding wraps
+    whatever already produces chat replies (`ModelRouterLLM` + RAG +
+    the L5 compliance chain, Phase 1's `InProcessOrchestrator`, pinned
+    to the `fast` model profile per Epic 2.3) so the voice runtime
+    doesn't duplicate that wiring or care whether it's in-process
+    (`lfx`) or over HTTP.
+    """
+
+    def respond(self, utterance: str) -> AsyncIterator[str]: ...
+
+
 @dataclass(frozen=True)
 class LatencyLedger:
     """Per-turn latency budget instrumentation. Plan Section 15's SLO:
