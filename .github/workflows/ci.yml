@@ -8,6 +8,23 @@ on:
 jobs:
   lint-typecheck-test:
     runs-on: ubuntu-latest
+    services:
+      # pgvector/pgvector:pg16 is plain postgres:16 with the pgvector
+      # extension pre-installed — needed by tests/plugins/test_pgvector.py,
+      # a real integration test (not mocked) against PgVectorStore.
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: saap
+          POSTGRES_PASSWORD: saap_dev_only
+          POSTGRES_DB: saap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U saap"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
