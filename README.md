@@ -110,7 +110,8 @@ change needed to move from the dev fallback to production.
 | Indic STT/TTS voices (IndicConformer/IndicWhisper, Piper ta-IN/hi-IN), Consent Manager integration, 72-hour breach protocol | ⬜ Phase 3 (remaining) |
 | `FlowScheduler` (campaign_enrollments claim/consent-check/dispatch/settle, crash-safe via optimistic version compare-and-swap) | ✅ Implemented and tested against the real `campaign_enrollments` schema shape (migrations/versions/0001_initial_schema.py) — Postgres-backed `EnrollmentStore` not yet written, tested against `InMemoryEnrollmentStore`'s identical CAS semantics |
 | `WebhookAdapter` (HMAC-signed ingress channel, `sha256=` signature verification before tenant resolution) | ✅ Implemented and tested — the `ChannelAdapter` contract's per-request one-shot channel for client-system POSTs (Epic 4.5) |
-| Tenant blueprint engine, CRM (Twenty), billing (Lago) | ⬜ Phase 4 (remaining) |
+| `TenantBlueprint` schema (YAML) + `TenantProvisioner` (idempotent apply/plan/destroy across resource ports, Terraform-style dry-run drift detection) | ✅ Implemented and tested — concrete ports (Keycloak realm, Qdrant namespace, Postgres schema, OPA doc, MCP config, CRM workspace) not bound to real services; `ErasureService` composition into `destroy` left to the calling CLI (no per-tenant source registry yet to enumerate from) |
+| CRM (Twenty), billing (Lago) | ⬜ Phase 4 (remaining) |
 | Vertical packs, AI Audit flow | ⬜ Phase 5 |
 
 **Note on the Langflow canvas integration:** the real `langflow` PyPI
